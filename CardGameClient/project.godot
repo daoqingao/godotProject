@@ -17,7 +17,7 @@ config/icon="res://asset/icon.svg"
 
 [autoload]
 
-ConnectionManager="*res://scripts/ConnectionManager.gd"
+server="*res://server/server.gd"
 GameManager="*res://scripts/GameManager.gd"
 CardManager="*res://scripts/CardManager.gd"
 
