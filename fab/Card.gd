@@ -10,6 +10,10 @@ var cardImg
 var cardData
 var selected = false
 var newSnapPos = null;
+var ownerId = 1;
+var id = -1;
+
+var isOwner = true
 
 var flippedUp = true; #anything at card front z-index 6 is up, 4 is down
 var restSnapPos:Vector2 = Vector2.ZERO;
@@ -23,11 +27,13 @@ func construct(cardData):
 	flippedUp = true
 	$CardFront.z_index = 6
 	$CardBack.z_index = 5
-	
-
+	$MultiplayerSynchronizer.set_multiplayer_authority(cardData.ownerId)
 
 
 func _physics_process(delta):
+	isOwner = $MultiplayerSynchronizer.get_multiplayer_authority() == multiplayer.get_unique_id()
+	if(!isOwner):
+		return
 	if selected:
 		position = lerp(position,get_global_mouse_position(),25 * delta)
 	else:
@@ -53,7 +59,6 @@ func flipCard():
 	else:
 		animation.play("card_flip_up")	
 		flippedUp = true
-		
 
 
 func _input(event):
