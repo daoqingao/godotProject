@@ -12,6 +12,7 @@ func _process(delta):
 
 func _on_server_do_something_pressed():
 	server.askServer()
+	server.askServerToStartGame()
 	return;
 
 
@@ -21,6 +22,5 @@ func _on_join_pressed():
 
 
 func _on_host_pressed():
-	print("host button created, this instance is now the server and should not play")
 	server.startServer()
 	pass # Replace with function body.

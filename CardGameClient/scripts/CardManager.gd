@@ -6,7 +6,6 @@ const Card = preload("res://fab/Card.tscn")
 var cardList = []
 var playerList = []
 
-var players = {}
 
 func _ready():
 	pass # Replace with function body.
@@ -22,13 +21,13 @@ func createCard(cardType = 'rock',pos = Vector2.ZERO,ownerId = 1):
 	cardList.push_back(card)
 	print("Card made ", cardType, card.position)
 	return card
-func update():
-	return
 func startGame(): #init and show all cards
-	print("player: ", multiplayer.get_unique_id(), "start game with ", str(players))
+	var clientPlayers = server.localPlayers
+	print("called to start game", str(clientPlayers))	
 	var index = Vector2(100,100)
-	for i in players:
-		createCard('paper',index,players[i].playerId) #when we create a card, we make sure all the cards data are to a list
+	for i in clientPlayers:
+		print("what is this", i)
+		createCard('paper',index,clientPlayers[i].playerId) #when we create a card, we make sure all the cards data are to a list
 		index = index * 2
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func onPlayerJoined(id):

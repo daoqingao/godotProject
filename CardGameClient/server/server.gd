@@ -16,11 +16,21 @@ func _on_server_receive_client_disconnect(id):
 	print("server signals to client: client disconnected from the server",id)
 
 
+enum ActionTypes {
+	STARTGAME,
+	CONNECT,
+}
 
-
+#class Player:
+	#var id: int
+	#var peerId: int
+	#var name: String
+	#func _to_string():
+		#return str(peerId)
 
 ###################################### SERVER ONLY
-var serverPlayers = {}
+##<PlayerId, PlayerData> some terrible dynamic bruh
+var serverPlayers = {} #pretend this to be just a dictionary of players i cant set types...
 
 func startServer():
 	print("this instance is now the server. and should not be playing ")
@@ -36,15 +46,18 @@ func startServer():
 # server calls the client.
 #any peer can send data to server
 @rpc("any_peer","call_remote")
-func SendClientDataToServer(playerData,actionType):
-	if actionType=="connected":
-		var playerId = playerData
-		print("the server should be getting this. ", playerId)
+func SendClientDataToServer(actionType: ActionTypes,data):
+	if actionType==ActionTypes.CONNECT:
+		var playerData = data
+		var playerId = playerData.playerId#type should then be peerId..
+		print("the server should be getting this. ", )
 		if !serverPlayers.has(playerId):
-			serverPlayers[playerId] = {
-				playerId = playerId
-			}
-		SendServerPlayerDataToClient.rpc(serverPlayers)
+			serverPlayers[playerId] = playerData
+		SendServerPlayerDataToClient.rpc(actionType,serverPlayers)
+	if actionType==ActionTypes.STARTGAME:
+		print("server: one client asked to start game, propagating to everyone")
+		SendServerPlayerDataToClient.rpc(actionType,null)
+		
 
 	
 	
@@ -53,9 +66,7 @@ func SendClientDataToServer(playerData,actionType):
 var localPlayers = {}
 func _on_client_success_connect_to_server():
 	print("client: successfully connect to server")
-	SendClientDataToServer.rpc_id(1, {
-		playerId = multiplayer.get_unique_id()
-	},"connected")
+	registerPlayer()
 func _on_client_fail_connect_to_server():
 	print("client: unable to connect to server")
 func _on_client_disconnect_to_server():
@@ -73,21 +84,28 @@ func joinServer():
 	multiplayer.server_disconnected.connect(_on_client_disconnect_to_server)
 	return
 
+func registerPlayer():
+	SendClientDataToServer.rpc_id(1, ActionTypes.CONNECT, {
+		playerId = multiplayer.get_unique_id(),
+		peerId = multiplayer.get_unique_id()
+	})
 
 func askServer():
-	#ask the server to start game bruh
-	SendClientDataToServer.rpc_id(1, {
-		playerId = multiplayer.get_unique_id()
-	},"start")
 	print("trying to call server to do this")
 
-	
-	
+func askServerToStartGame():
+	print("asked server to start a game")
+	SendClientDataToServer.rpc_id(1, ActionTypes.STARTGAME, null)
 #authority means the server sends data back to
 @rpc("authority","call_remote")
-func SendServerPlayerDataToClient(players):
-	print("client should be getting this back from the server", players)
-	localPlayers = players
+func SendServerPlayerDataToClient(actionType,data):
+	if(actionType== ActionTypes.CONNECT):
+		print("client: got player data:", data)
+		localPlayers = data
+	if(actionType== ActionTypes.STARTGAME):
+		print("client: asked to start game")
+		CardManager.startGame()
+		
 	pass
 
 
