@@ -1,15 +1,18 @@
 extends Node2D
 ##################SHARED SCHEMAS>?
 
-const MAX_CONNECTIONS = 20
-const SERVER_ADDRESS = "127.0.0.1" # IPv4 localhost
-const SERVER_PORT = 7000
+var MAX_CONNECTIONS = 20
+var SERVER_ADDRESS = "127.0.0.1" # IPv4 localhost
+
+var SERVER_PORT = 7000
 func _ready():
+	SERVER_ADDRESS = "150.136.95.172" # uncomment to connect to server
 	if("--server" in OS.get_cmdline_args()):
+		#any thing that is for the oracle server
+		SERVER_ADDRESS = "0.0.0.0"
 		startServer()
-	return
 	
-#server and client
+#server and client gets this call
 func _on_server_receive_client_connect(id):
 	print("server signals to client: client connected from the server",id)
 func _on_server_receive_client_disconnect(id):
@@ -29,7 +32,7 @@ enum ActionTypes {
 		#return str(peerId)
 
 ###################################### SERVER ONLY
-##<PlayerId, PlayerData> some terrible dynamic bruh
+##<PlayerId, PlayerData>
 var serverPlayers = {} #pretend this to be just a dictionary of players i cant set types...
 
 func startServer():
@@ -41,12 +44,15 @@ func startServer():
 	multiplayer.multiplayer_peer = peer #means that we make the 
 	multiplayer.peer_connected.connect(_on_server_receive_client_connect)
 	multiplayer.peer_disconnected.connect(_on_server_receive_client_disconnect)
-	print("server: server started")
+	print("server: server started on server and port", SERVER_ADDRESS, ":", SERVER_PORT)
 
 # server calls the client.
-#any peer can send data to server
-
 ## you cannot pass an Object into the data field through rpc, its so stupid
+#NOTE: this function is only called by the client
+# an example call from client is 
+#rpc_id 1 = server	SendClientDataToServer.rpc_id(1, ActionTypes.STARTGAME, null)
+#any peer means any client can call this function
+#call remote means only the server would get this function call
 @rpc("any_peer","call_remote")
 func SendClientDataToServer(actionType: ActionTypes,data):
 	if actionType==ActionTypes.CONNECT:
@@ -78,6 +84,7 @@ func joinServer():
 	var peer: ENetMultiplayerPeer = ENetMultiplayerPeer.new()
 	if peer.create_client(SERVER_ADDRESS, SERVER_PORT):
 		printerr("Error creating the client")
+		print("error creating clinet", str(peer))
 	multiplayer.multiplayer_peer = peer 
 	multiplayer.peer_connected.connect(_on_server_receive_client_connect)
 	multiplayer.peer_disconnected.connect(_on_server_receive_client_disconnect)
@@ -97,8 +104,15 @@ func askServer():
 
 func askServerToStartGame():
 	print("asked server to start a game")
+	# NOTE THAT RPC_ID(1) means A CALL TO THE SERVER
 	SendClientDataToServer.rpc_id(1, ActionTypes.STARTGAME, null)
-#authority means the server sends data back to
+	
+#PLEASE NOTE: THIS FUNCTION IS CALLED BY THE SERVER
+#THE CLIENT RECEIVES THIS FUNCTION, THE FUNCTION NAME IS CORRECT, 
+# AUTHORITY means only the SERVER CAN CALL THIS
+# CALL REMOTE MEANS ONLY CLIENTS WOULD GET THIS FUNCTION CALLED
+# CALL_LOCAL WOULD MEAN THE SERVER WOULD ALSO GET THIS FUNCTION CALLED
+#THE PURPOSE OF THIS FUNCTION IS for the server to send data back to ALL OF THE CLIENTS, essentially propagating data
 @rpc("authority","call_remote")
 func SendServerPlayerDataToClient(actionType,data):
 	if(actionType== ActionTypes.CONNECT):
